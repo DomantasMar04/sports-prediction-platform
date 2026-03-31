@@ -4,7 +4,7 @@ import { matchService } from '../services/api';
 
 function MatchesPage() {
     const [matches, setMatches] = useState([]);
-    const [status, setStatus] = useState('');
+    const [status, setStatus] = useState('UPCOMING');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -41,8 +41,8 @@ function MatchesPage() {
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
             >
-                <option value="">Visos</option>
                 <option value="UPCOMING">Būsimos</option>
+                <option value="">Visos</option>
                 <option value="LIVE">Vykstančios</option>
                 <option value="FINISHED">Baigtos</option>
             </Form.Select>

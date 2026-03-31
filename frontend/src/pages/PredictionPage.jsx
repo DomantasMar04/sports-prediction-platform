@@ -5,6 +5,7 @@ import { matchService, predictionService } from '../services/api';
 
 function PredictionPage() {
     const { matchId } = useParams();
+    const userId = localStorage.getItem('userId') || 1;
     const [match, setMatch] = useState(null);
     const [prediction, setPrediction] = useState({
         predictedWinner: '',
@@ -15,7 +16,7 @@ function PredictionPage() {
     });
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState('');
-    const userId = localStorage.getItem('userId');
+    // const userId = localStorage.getItem('userId');
 
     useEffect(() => {
         matchService.getById(matchId).then((res) => setMatch(res.data));
@@ -25,16 +26,19 @@ function PredictionPage() {
         e.preventDefault();
         try {
             await predictionService.create(matchId, {
-                ...prediction,
+                predictedWinner: prediction.predictedWinner,
+                predictedFirstScorer: prediction.predictedFirstScorer,
+                predictedMvp: prediction.predictedMvp,
                 predictedHomeScore: parseInt(prediction.predictedHomeScore),
                 predictedAwayScore: parseInt(prediction.predictedAwayScore),
-                match: { id: matchId },
-                user: { id: userId },
+                match: { id: parseInt(matchId) },
+                user: { id: parseInt(userId) },
             }, userId);
             setSaved(true);
             setError('');
         } catch (err) {
-            setError('Klaida išsaugant spėjimą.');
+            console.error(err.response?.data);
+            setError('Klaida išsaugant spėjimą: ' + (err.response?.data?.message || ''));
         }
     };
 
