@@ -26,6 +26,8 @@ public class League {
     @Column(nullable = false)
     private LeagueType type;
 
+    private String externalId;
+
     private String sport;
     private String description;
 

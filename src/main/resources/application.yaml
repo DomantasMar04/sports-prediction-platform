@@ -19,5 +19,5 @@ jwt:
   expiration: 86400000
 
 api-sports:
-  key: YOUR_API_KEY
+  key: 33676b43431952760164e1d28e8dad21
   base-url: https://v1.basketball.api-sports.io
