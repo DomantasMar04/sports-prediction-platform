@@ -9,6 +9,7 @@ function AppNavbar() {
                 <Navbar.Collapse>
                     <Nav className="me-auto">
                         <Nav.Link href="/matches">Rungtynės</Nav.Link>
+                        <Nav.Link href="/my-predictions">Mano spėjimai</Nav.Link>
                         <Nav.Link href="/leaderboard">Lyderiai</Nav.Link>
                     </Nav>
                 </Navbar.Collapse>

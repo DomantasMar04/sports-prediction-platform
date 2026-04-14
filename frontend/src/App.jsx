@@ -4,6 +4,7 @@ import AppNavbar from './components/Navbar';
 import MatchesPage from './pages/MatchesPage';
 import PredictionPage from './pages/PredictionPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import MyPredictionsPage from './pages/MyPredictionsPage';
 
 function App() {
     return (
@@ -13,6 +14,7 @@ function App() {
                 <Route path="/" element={<MatchesPage />} />
                 <Route path="/matches" element={<MatchesPage />} />
                 <Route path="/matches/:matchId" element={<PredictionPage />} />
+                <Route path="/my-predictions" element={<MyPredictionsPage />} />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
             </Routes>
         </BrowserRouter>
