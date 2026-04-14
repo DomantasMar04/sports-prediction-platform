@@ -28,8 +28,6 @@ public class Prediction {
     private Match match;
 
     private String predictedWinner;
-    private String predictedFirstScorer;
-    private String predictedMvp;
     private Integer predictedHomeScore;
     private Integer predictedAwayScore;
 
@@ -39,6 +37,13 @@ public class Prediction {
     @Column(name = "is_calculated")
     private Boolean isCalculated = false;
 
+    // JSON breakdown: {"winner":20,"homeScore":30,...}
+    @Column(name = "breakdown", length = 500)
+    private String breakdown;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt = LocalDateTime.now();
 }
