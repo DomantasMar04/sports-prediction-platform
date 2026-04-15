@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:8080/api';
-const DEFAULT_USER_ID = 1;
 
 const api = axios.create({
     baseURL: API_URL,
@@ -14,6 +13,14 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+export const authService = {
+    register: (data) => api.post('/auth/register', data),
+    login: (data) => api.post('/auth/login', data),
+    getMe: () => api.get('/auth/me'),
+    getProfile: () => api.get('/auth/profile'),
+    deleteMe: () => api.delete('/auth/me'),
+};
+
 export const matchService = {
     getAll: (leagueId, status) => {
         const params = {};
@@ -23,33 +30,23 @@ export const matchService = {
     },
     getById: (id) => api.get(`/matches/${id}`),
     create: (match) => api.post('/matches', match),
-    updateScore: (id, data) => api.patch(`/matches/${id}/score`, data, {
-        headers: { 'X-User-Role': 'ADMIN' }
-    }),
+    updateScore: (id, data) => api.patch(`/matches/${id}/score`, data),
 };
 
 export const predictionService = {
-    create: (matchId, prediction, userId = DEFAULT_USER_ID) =>
-        api.post(`/matches/${matchId}/predictions`, prediction, {
-            headers: { 'X-User-Id': userId }
-        }),
+    create: (matchId, prediction) =>
+        api.post(`/matches/${matchId}/predictions`, prediction),
 
-    getMyPrediction: (matchId, userId = DEFAULT_USER_ID) =>
-        api.get(`/matches/${matchId}/predictions/me`, {
-            headers: { 'X-User-Id': userId }
-        }),
+    getMyPrediction: (matchId) =>
+        api.get(`/matches/${matchId}/predictions/me`),
 
-    update: (matchId, predictionId, data, userId = DEFAULT_USER_ID) =>
-        api.patch(`/matches/${matchId}/predictions/${predictionId}`, data, {
-            headers: { 'X-User-Id': userId }
-        }),
+    update: (matchId, predictionId, data) =>
+        api.patch(`/matches/${matchId}/predictions/${predictionId}`, data),
 
-    delete: (matchId, predictionId, userId = DEFAULT_USER_ID) =>
-        api.delete(`/matches/${matchId}/predictions/${predictionId}`, {
-            headers: { 'X-User-Id': userId }
-        }),
+    delete: (matchId, predictionId) =>
+        api.delete(`/matches/${matchId}/predictions/${predictionId}`),
 
-    getUserPredictions: (userId = DEFAULT_USER_ID) =>
+    getUserPredictions: (userId) =>
         api.get(`/users/${userId}/predictions`),
 };
 
@@ -62,14 +59,9 @@ export const leaderboardService = {
 };
 
 export const adminService = {
-    syncGames: () =>
-        api.post('/sync/games', null, {
-            headers: { 'X-User-Role': 'ADMIN' }
-        }),
+    syncGames: () => api.post('/sync/games'),
     calculatePoints: (matchId) =>
-        api.post(`/matches/${matchId}/predictions/calculate`, null, {
-            headers: { 'X-User-Role': 'ADMIN' }
-        }),
+        api.post(`/matches/${matchId}/predictions/calculate`),
 };
 
 export default api;

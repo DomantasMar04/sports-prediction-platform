@@ -1,5 +1,9 @@
 package com.prediction.platform.prediction;
 
+
+import com.prediction.platform.user.User;
+import com.prediction.platform.user.UserRepository;
+import org.springframework.security.core.Authentication;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,15 +14,29 @@ import java.util.List;
 public class PredictionController {
 
     private final PredictionService predictionService;
+    private final UserRepository userRepository;
 
     // Sukurti spėjimą
     @PostMapping("/api/matches/{matchId}/predictions")
     public ResponseEntity<Prediction> createPrediction(
             @PathVariable Long matchId,
-            @RequestHeader("X-User-Id") Long userId,
+            Authentication authentication,
             @RequestBody Prediction prediction) {
+
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (prediction.getMatch() == null) {
+            prediction.setMatch(new com.prediction.platform.match.Match());
+        }
+        if (prediction.getUser() == null) {
+            prediction.setUser(new User());
+        }
+
         prediction.getMatch().setId(matchId);
-        prediction.getUser().setId(userId);
+        prediction.getUser().setId(currentUser.getId());
+
         return ResponseEntity.ok(predictionService.createPrediction(prediction));
     }
 
@@ -26,9 +44,19 @@ public class PredictionController {
     @GetMapping("/api/matches/{matchId}/predictions/me")
     public ResponseEntity<Prediction> getMyPrediction(
             @PathVariable Long matchId,
-            @RequestHeader("X-User-Id") Long userId) {
-        Prediction p = predictionService.getMyPrediction(userId, matchId);
+            Authentication authentication) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Prediction p = predictionService.getMyPrediction(currentUser.getId(), matchId);
         if (p == null) return ResponseEntity.notFound().build();
+
         return ResponseEntity.ok(p);
     }
 
@@ -37,9 +65,18 @@ public class PredictionController {
     public ResponseEntity<Prediction> updatePrediction(
             @PathVariable Long matchId,
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId,
+            Authentication authentication,
             @RequestBody Prediction prediction) {
-        return ResponseEntity.ok(predictionService.updatePrediction(id, userId, prediction));
+
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(predictionService.updatePrediction(id, currentUser.getId(), prediction));
     }
 
     // Ištrinti spėjimą
@@ -47,8 +84,17 @@ public class PredictionController {
     public ResponseEntity<Void> deletePrediction(
             @PathVariable Long matchId,
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId) {
-        predictionService.deletePrediction(id, userId);
+            Authentication authentication) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        predictionService.deletePrediction(id, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 
@@ -63,8 +109,17 @@ public class PredictionController {
     @PostMapping("/api/matches/{matchId}/predictions/calculate")
     public ResponseEntity<Void> calculatePoints(
             @PathVariable Long matchId,
-            @RequestHeader("X-User-Role") String userRole) {
-        if (!userRole.equals("ADMIN")) return ResponseEntity.status(403).build();
+            Authentication authentication) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) return ResponseEntity.status(403).build();
+
         predictionService.calculatePoints(matchId);
         return ResponseEntity.ok().build();
     }
