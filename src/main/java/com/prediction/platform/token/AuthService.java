@@ -127,8 +127,10 @@ public class AuthService {
                         prediction.getPredictedWinner(),
                         prediction.getPredictedHomeScore(),
                         prediction.getPredictedAwayScore(),
+                        prediction.getPredictedMostQuartersWinner(), // 10-as argumentas (NAUJAS)
                         prediction.getMatch().getHomeScore(),
                         prediction.getMatch().getAwayScore(),
+                        prediction.getMatch().getQuarterResults(),   // 13-as argumentas (NAUJAS)
                         prediction.getPointsEarned(),
                         prediction.getIsCalculated(),
                         prediction.getBreakdown(),
@@ -156,4 +158,3 @@ public class AuthService {
         userRepository.delete(user);
     }
 }
-

@@ -35,14 +35,15 @@ public class MatchService {
         return matchRepository.save(match);
     }
 
-    public Match updateMatchResult(Long id, Integer homeScore, Integer awayScore,
-                                   String mvp, String firstScorer) {
+    // ATNAUJINTAS METODAS: Pašalintas MVP/FirstScorer, pridėtas quarterResults
+    public Match updateMatchResult(Long id, Integer homeScore, Integer awayScore, String quarterResults) {
         Match match = getMatchById(id);
+
         match.setHomeScore(homeScore);
         match.setAwayScore(awayScore);
-        match.setMvpPlayer(mvp);
-        match.setFirstScorer(firstScorer);
+        match.setQuarterResults(quarterResults); // Išsaugome ketvirčių duomenis
         match.setStatus(Match.MatchStatus.FINISHED);
+
         return matchRepository.save(match);
     }
 }

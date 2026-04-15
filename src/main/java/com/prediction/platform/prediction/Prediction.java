@@ -30,6 +30,7 @@ public class Prediction {
     private String predictedWinner;
     private Integer predictedHomeScore;
     private Integer predictedAwayScore;
+    private Integer predictedMostQuartersWinner;
 
     @Column(name = "points_earned")
     private Integer pointsEarned = 0;

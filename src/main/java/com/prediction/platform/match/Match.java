@@ -39,8 +39,7 @@ public class Match {
 
     private Integer homeScore;
     private Integer awayScore;
-    private String mvpPlayer;
-    private String firstScorer;
+    private String quarterResults;
     private String externalId;
 
     @Column(name = "created_at")

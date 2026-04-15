@@ -6,6 +6,5 @@ import lombok.Data;
 public class MatchResultRequest {
     private Integer homeScore;
     private Integer awayScore;
-    private String mvpPlayer;
-    private String firstScorer;
+    private String quarterResults;
 }

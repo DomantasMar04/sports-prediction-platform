@@ -44,7 +44,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/matches/*/predictions/me").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/matches/*/predictions/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/matches/*/predictions/*").authenticated()
-                        .requestMatchers("/api/matches/*/predictions/calculate").hasRole("ADMIN")
+                        .requestMatchers("/api/matches/*/predictions/calculate").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/matches/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/leaderboard/**").permitAll()

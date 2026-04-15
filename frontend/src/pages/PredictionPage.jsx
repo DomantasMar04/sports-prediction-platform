@@ -5,6 +5,8 @@ import { matchService, predictionService } from '../services/api';
 
 const DEFAULT_USER_ID = 1;
 
+// --- PAGALBINIAI KOMPONENTAI ---
+
 function useCountdown(startTime) {
     const getRemaining = useCallback(() => {
         if (!startTime) return null;
@@ -46,34 +48,51 @@ function TeamHeader({ logoUrl, name }) {
     );
 }
 
+// --- TAŠKŲ DETALIZACIJA (PATAISYTA) ---
 function BreakdownCard({ breakdown }) {
     if (!breakdown) return null;
     let data;
-    try { data = JSON.parse(breakdown); } catch { return null; }
-    const rows = [
-        { label: 'Laimėtojas', points: data.winner },
-        { label: 'Namų komandos taškai', points: data.homeScore },
-        { label: 'Svečių komandos taškai', points: data.awayScore },
-        { label: 'Taškų skirtumas', points: data.diff },
-        { label: 'Bendras rezultatyvumas', points: data.total },
-        { label: '🎯 Tikslus rezultatas (bonus)', points: data.exactBonus },
-    ];
+    try {
+        data = typeof breakdown === 'string' ? JSON.parse(breakdown) : breakdown;
+    } catch { return null; }
+
+    // Žodynas atitinkantis tavo Backend JSON raktus
+    const labels = {
+        winner: "Atspėtas nugalėtojas",
+        home: "Namų komandos taškai",
+        away: "Svečių komandos taškai",
+        quarters: "Kėlinių spėjimas",
+        totalSum: "Bendra taškų suma",
+        difference: "Taškų skirtumas"
+    };
+
+    // Sukuriame sąrašą iš visų galimų kategorijų (rodome net jei 0)
+    const rows = Object.entries(data).map(([key, value]) => ({
+        label: labels[key] || key,
+        points: value || 0
+    }));
+
     const total = Object.values(data).reduce((s, v) => s + (v || 0), 0);
+
     return (
-        <Card className="mt-3 border-success">
+        <Card className="mt-3 border-success shadow-sm">
             <Card.Body>
-                <Card.Title className="fs-6 text-success">Taškų skaičiavimas</Card.Title>
+                <Card.Title className="fs-6 text-success fw-bold border-bottom pb-2">
+                    Taškų skaičiavimas
+                </Card.Title>
                 <table className="table table-sm mb-0">
                     <tbody>
-                    {rows.map(r => r.points > 0 && (
-                        <tr key={r.label}>
-                            <td>{r.label}</td>
-                            <td className="text-end fw-semibold text-success">+{r.points}</td>
+                    {rows.map((r, idx) => (
+                        <tr key={idx}>
+                            <td className="text-muted">{r.label}</td>
+                            <td className={`text-end fw-semibold ${r.points > 0 ? 'text-success' : 'text-muted'}`}>
+                                {r.points > 0 ? `+${r.points}` : r.points}
+                            </td>
                         </tr>
                     ))}
-                    <tr className="table-success fw-bold">
-                        <td>Iš viso</td>
-                        <td className="text-end">{total} taškų</td>
+                    <tr className="table-success fw-bold border-top">
+                        <td>Iš viso už rungtynes</td>
+                        <td className="text-end text-dark">{total} taškų</td>
                     </tr>
                     </tbody>
                 </table>
@@ -81,6 +100,8 @@ function BreakdownCard({ breakdown }) {
         </Card>
     );
 }
+
+// --- PAGRINDINIS PUSLAPIS ---
 
 function PredictionPage() {
     const { matchId } = useParams();
@@ -105,12 +126,10 @@ function PredictionPage() {
             .then(res => {
                 if (res.data) {
                     setExistingPrediction(res.data);
-                    // Užpildyti formos laukus
                     setPredictedWinner(res.data.predictedWinner || '');
-                    // Paskirstome total į kėlinukus (neturime kėlinukų, tai tiesiog rodome total)
                 }
             })
-            .catch(() => {}); // 404 = nėra spėjimo
+            .catch(() => {});
     }, [matchId]);
 
     const calcTotal = (quarters) => quarters.reduce((sum, q) => sum + (parseInt(q) || 0), 0);
@@ -133,11 +152,22 @@ function PredictionPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isLocked) { setError('Spėjimo laikas baigėsi.'); return; }
+
+        // Paskaičiuojame kėlinių laimėtoją (logika tavo DB)
+        let hWins = 0, aWins = 0;
+        for(let i=0; i<4; i++) {
+            const h = parseInt(homeQuarters[i]) || 0;
+            const a = parseInt(awayQuarters[i]) || 0;
+            if (h > a) hWins++; else if (a > h) aWins++;
+        }
+        const qWinner = hWins > aWins ? 1 : (aWins > hWins ? 2 : 0);
+
         try {
             const data = {
                 predictedWinner,
                 predictedHomeScore: homeTotal,
                 predictedAwayScore: awayTotal,
+                predictedMostQuartersWinner: qWinner,
                 match: { id: parseInt(matchId) },
                 user: { id: DEFAULT_USER_ID },
             };
@@ -175,14 +205,13 @@ function PredictionPage() {
     const awayName = match.awayTeam?.name;
     const canEdit = !isLocked && !isFinished && !isLive;
 
-    // Jei yra spėjimas ir neredaguojam — rodome peržiūrą
     if (existingPrediction && !isEditing) {
         return (
             <Container className="mt-4" style={{ maxWidth: '680px' }}>
-                <h2 className="mb-4">Mano spėjimas</h2>
+                <h2 className="mb-4 text-center">Mano spėjimas</h2>
 
-                <Card className="mb-3">
-                    <Card.Body className="text-center">
+                <Card className="mb-3 shadow-sm text-center">
+                    <Card.Body>
                         <div className="d-flex justify-content-center align-items-center gap-4 mb-2">
                             <TeamHeader logoUrl={match.homeTeam?.logoUrl} name={homeName} />
                             <span className="text-muted fw-bold fs-4">vs</span>
@@ -190,135 +219,113 @@ function PredictionPage() {
                         </div>
                         <small className="text-muted d-block mb-2">📅 {formatDateTime(match.startTime)}</small>
                         {isFinished && (
-                            <h5 className="text-primary mt-2">Rezultatas: {match.homeScore} : {match.awayScore}</h5>
+                            <div className="mt-2">
+                                <span className="text-muted small">Rezultatas:</span>
+                                <h3 className="text-primary">{match.homeScore} : {match.awayScore}</h3>
+                            </div>
                         )}
                         {!isFinished && !isLive && <div className="mt-2"><CountdownDisplay remaining={remaining} /></div>}
                         {isLive && <Badge bg="danger" className="fs-6 mt-2">🔴 Vyksta</Badge>}
                     </Card.Body>
                 </Card>
 
-                <Card className="mb-3">
+                <Card className="mb-3 shadow-sm">
                     <Card.Body>
-                        <div className="fw-semibold mb-3">Tavo spėjimas</div>
-                        <table className="table table-bordered text-center mb-0">
-                            <thead className="table-light">
-                            <tr>
-                                <th style={{ textAlign: 'left' }}>Komanda</th>
-                                <th>Taškai</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td style={{ textAlign: 'left' }}>
-                                    <div className="d-flex align-items-center gap-2">
-                                        {match.homeTeam?.logoUrl && <img src={match.homeTeam.logoUrl} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />}
-                                        <span>{homeName}</span>
-                                    </div>
-                                </td>
-                                <td className="fw-bold">{existingPrediction.predictedHomeScore}</td>
-                            </tr>
-                            <tr>
-                                <td style={{ textAlign: 'left' }}>
-                                    <div className="d-flex align-items-center gap-2">
-                                        {match.awayTeam?.logoUrl && <img src={match.awayTeam.logoUrl} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />}
-                                        <span>{awayName}</span>
-                                    </div>
-                                </td>
-                                <td className="fw-bold">{existingPrediction.predictedAwayScore}</td>
-                            </tr>
-                            </tbody>
-                        </table>
-                        <div className="mt-2 text-muted">Laimėtojas: <strong>{existingPrediction.predictedWinner}</strong></div>
-                        {existingPrediction.isCalculated && (
-                            <div className="mt-2">
-                                <Badge bg="success" className="fs-6">🏆 Gauta taškų: {existingPrediction.pointsEarned}</Badge>
+                        <div className="fw-semibold mb-3 border-bottom pb-2">Tavo spėjimo detalės</div>
+                        <div className="d-flex justify-content-between mb-2">
+                            <span>Spėtas nugalėtojas:</span>
+                            <strong className="text-primary">{existingPrediction.predictedWinner}</strong>
+                        </div>
+                        <div className="d-flex justify-content-between mb-3">
+                            <span>Spėtas rezultatas:</span>
+                            <strong className="fs-5">{existingPrediction.predictedHomeScore} : {existingPrediction.predictedAwayScore}</strong>
+                        </div>
+
+                        {existingPrediction.isCalculated ? (
+                            <div className="text-center p-3 bg-light rounded">
+                                <div className="text-muted small mb-1">Gauta taškų</div>
+                                <Badge bg="success" className="fs-5 px-4">🏆 {existingPrediction.pointsEarned}</Badge>
                             </div>
+                        ) : isFinished ? (
+                            <Alert variant="info" className="text-center py-2 mb-0">Taškai skaičiuojami...</Alert>
+                        ) : null}
+
+                        {/* ČIA RODOMAS BREAKDOWN */}
+                        {existingPrediction.isCalculated && (
+                            <BreakdownCard breakdown={existingPrediction.breakdown} />
                         )}
                     </Card.Body>
                 </Card>
 
-                {existingPrediction.isCalculated && <BreakdownCard breakdown={existingPrediction.breakdown} />}
-
-                {deleted && <Alert variant="info">Spėjimas ištrintas.</Alert>}
-                {error && <Alert variant="danger">{error}</Alert>}
+                {deleted && <Alert variant="info" className="mt-3">Spėjimas ištrintas.</Alert>}
+                {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
 
                 {canEdit && (
-                    <div className="d-flex gap-2 mt-3">
-                        <Button variant="outline-primary" className="flex-grow-1" onClick={() => { setIsEditing(true); setSaved(false); }}>
-                            ✏️ Redaguoti
+                    <div className="d-flex gap-2 mt-4">
+                        <Button variant="outline-primary" className="flex-grow-1 py-2" onClick={() => { setIsEditing(true); setSaved(false); }}>
+                            ✏️ Redaguoti spėjimą
                         </Button>
-                        <Button variant="outline-danger" onClick={handleDelete}>
-                            🗑️ Ištrinti
-                        </Button>
+                        <Button variant="outline-danger" onClick={handleDelete}>🗑️</Button>
                     </div>
                 )}
             </Container>
         );
     }
 
-    // Forma (nauja arba redagavimas)
     return (
         <Container className="mt-4" style={{ maxWidth: '680px' }}>
-            <h2 className="mb-4">{isEditing ? 'Redaguoti spėjimą' : 'Spėjimas'}</h2>
+            <h2 className="mb-4 text-center">{isEditing ? 'Redaguoti spėjimą' : 'Pateikti spėjimą'}</h2>
 
-            <Card className="mb-3">
-                <Card.Body className="text-center">
+            <Card className="mb-3 border-0 bg-light text-center">
+                <Card.Body>
                     <div className="d-flex justify-content-center align-items-center gap-4 mb-2">
                         <TeamHeader logoUrl={match.homeTeam?.logoUrl} name={homeName} />
                         <span className="text-muted fw-bold fs-4">vs</span>
                         <TeamHeader logoUrl={match.awayTeam?.logoUrl} name={awayName} />
                     </div>
-                    <small className="text-muted d-block mb-2">📅 {formatDateTime(match.startTime)}</small>
-                    {isFinished ? (
-                        <h5 className="text-primary mt-2">Rezultatas: {match.homeScore} : {match.awayScore}</h5>
-                    ) : (
-                        <div className="mt-2"><CountdownDisplay remaining={remaining} /></div>
-                    )}
+                    {!isFinished && <CountdownDisplay remaining={remaining} />}
                 </Card.Body>
             </Card>
 
-            {isLocked && !isFinished && <Alert variant="warning">🔒 <strong>Spėjimas uždarytas</strong> — liko mažiau nei 10 minučių.</Alert>}
-            {isFinished && <Alert variant="secondary">Šios rungtynės jau baigtos.</Alert>}
+            {isLocked && !isFinished && <Alert variant="warning">🔒 Spėjimas uždarytas (liko mažiau nei 10 min).</Alert>}
             {saved && <Alert variant="success">Spėjimas išsaugotas! ✅</Alert>}
             {error && <Alert variant="danger">{error}</Alert>}
 
             <Form onSubmit={handleSubmit}>
                 <fieldset disabled={isLocked || isFinished || isLive}>
-                    <Card className="mb-3">
+                    <Card className="mb-4 shadow-sm">
                         <Card.Body>
-                            <div className="fw-semibold mb-3">Kėlinukų rezultatai</div>
-                            <div style={{ overflowX: 'auto' }}>
-                                <table className="table table-bordered text-center mb-0" style={{ minWidth: '420px' }}>
+                            <Card.Title className="fs-6 mb-3">Kėlinukų spėjimas</Card.Title>
+                            <div className="table-responsive">
+                                <table className="table table-bordered text-center align-middle mb-0">
                                     <thead className="table-light">
                                     <tr>
-                                        <th style={{ textAlign: 'left', width: '36%' }}>Komanda</th>
+                                        <th className="text-start" style={{ width: '40%' }}>Komanda</th>
                                         <th>K1</th><th>K2</th><th>K3</th><th>K4</th>
                                         <th className="table-secondary">Viso</th>
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {[
-                                        { name: homeName, logo: match.homeTeam?.logoUrl, quarters: homeQuarters, team: 'home', total: homeTotal },
-                                        { name: awayName, logo: match.awayTeam?.logoUrl, quarters: awayQuarters, team: 'away', total: awayTotal },
-                                    ].map(({ name, logo, quarters, team, total }) => (
-                                        <tr key={team}>
-                                            <td style={{ textAlign: 'left', verticalAlign: 'middle' }}>
-                                                <div className="d-flex align-items-center gap-2">
-                                                    {logo && <img src={logo} alt={name} style={{ width: 24, height: 24, objectFit: 'contain' }} />}
-                                                    <span className="fw-semibold">{name}</span>
-                                                </div>
+                                    <tr>
+                                        <td className="text-start fw-semibold">{homeName}</td>
+                                        {[0,1,2,3].map(i => (
+                                            <td key={i} className="p-1">
+                                                <Form.Control type="number" size="sm" className="text-center border-0"
+                                                              value={homeQuarters[i]} onChange={(e) => updateQuarter('home', i, e.target.value)} />
                                             </td>
-                                            {quarters.map((q, i) => (
-                                                <td key={i} style={{ padding: '4px 6px' }}>
-                                                    <input type="number" min="0" value={q}
-                                                           onChange={(e) => updateQuarter(team, i, e.target.value)}
-                                                           className="form-control form-control-sm"
-                                                           style={{ textAlign: 'center', minWidth: '52px' }} />
-                                                </td>
-                                            ))}
-                                            <td className="table-secondary fw-bold fs-5" style={{ verticalAlign: 'middle' }}>{total}</td>
-                                        </tr>
-                                    ))}
+                                        ))}
+                                        <td className="table-secondary fw-bold">{homeTotal}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="text-start fw-semibold">{awayName}</td>
+                                        {[0,1,2,3].map(i => (
+                                            <td key={i} className="p-1">
+                                                <Form.Control type="number" size="sm" className="text-center border-0"
+                                                              value={awayQuarters[i]} onChange={(e) => updateQuarter('away', i, e.target.value)} />
+                                            </td>
+                                        ))}
+                                        <td className="table-secondary fw-bold">{awayTotal}</td>
+                                    </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -326,23 +333,18 @@ function PredictionPage() {
                     </Card>
 
                     <Form.Group className="mb-4">
-                        <Form.Label>Laimėtoja komanda</Form.Label>
-                        <Form.Select value={predictedWinner} onChange={(e) => setPredictedWinner(e.target.value)} required>
-                            <option value="">Pasirink...</option>
+                        <Form.Label className="fw-bold">Kas laimės rungtynes?</Form.Label>
+                        <Form.Select size="lg" value={predictedWinner} onChange={(e) => setPredictedWinner(e.target.value)} required>
+                            <option value="">Pasirinkite nugalėtoją...</option>
                             <option value={homeName}>{homeName}</option>
                             <option value={awayName}>{awayName}</option>
                         </Form.Select>
                     </Form.Group>
 
                     <div className="d-flex gap-2">
-                        {isEditing && (
-                            <Button variant="outline-secondary" className="flex-shrink-0" onClick={() => setIsEditing(false)}>
-                                Atšaukti
-                            </Button>
-                        )}
-                        <Button variant={isLocked || isFinished ? 'secondary' : 'primary'} type="submit"
-                                className="flex-grow-1" disabled={isLocked || isFinished || isLive}>
-                            {isLocked || isFinished ? '🔒 Spėjimas uždarytas' : isEditing ? '💾 Išsaugoti pakeitimus' : 'Išsaugoti spėjimą'}
+                        {isEditing && <Button variant="outline-secondary" onClick={() => setIsEditing(false)}>Atšaukti</Button>}
+                        <Button variant="primary" type="submit" className="flex-grow-1 py-2 fs-5">
+                            {isEditing ? '💾 Išsaugoti pakeitimus' : '🚀 Išsaugoti spėjimą'}
                         </Button>
                     </div>
                 </fieldset>

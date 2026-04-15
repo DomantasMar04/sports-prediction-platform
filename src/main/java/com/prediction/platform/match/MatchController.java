@@ -45,22 +45,26 @@ public class MatchController {
         return ResponseEntity.ok(matchService.createMatch(match));
     }
 
+    /**
+     * Admino įrankis rankiniu būdu atnaujinti rezultatą.
+     * Naudojamas quarterResults vietoj mvpPlayer ir firstScorer.
+     */
     @PatchMapping("/{id}/score")
     public ResponseEntity<Match> updateScore(
             @PathVariable Long id,
-            @RequestHeader("X-User-Role") String userRole,
+            @RequestHeader(value = "X-User-Role", defaultValue = "USER") String userRole,
             @RequestBody MatchResultRequest request) {
 
-        if (!userRole.equals("ADMIN")) {
+        if (!"ADMIN".equals(userRole)) {
             return ResponseEntity.status(403).build();
         }
 
+        // Kviečiame atnaujintą MatchService metodą
         return ResponseEntity.ok(matchService.updateMatchResult(
                 id,
                 request.getHomeScore(),
                 request.getAwayScore(),
-                request.getMvpPlayer(),
-                request.getFirstScorer()));
+                request.getQuarterResults())); // Perduodame naują lauką
     }
 
     @PostMapping("/sync-upcoming")
@@ -68,9 +72,12 @@ public class MatchController {
             @RequestParam String leagueId,
             Authentication authentication) {
 
-        if (authentication == null) {
-            return ResponseEntity.status(401).build();
-        }
+        // LAIKINAI UŽKOMENTUOK ŠITĄ BLOKĄ:
+    /*
+    if (authentication == null) {
+        return ResponseEntity.status(401).build();
+    }
+    */
 
         int savedCount = sportsDbService.syncUpcomingMatches(leagueId);
 

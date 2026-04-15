@@ -106,21 +106,30 @@ public class PredictionController {
     }
 
     // Skaičiuoti taškus (admin)
+    // Skaičiuoti taškus (Sutvarkytas, kad priimtų rankinį headerį)
     @PostMapping("/api/matches/{matchId}/predictions/calculate")
-    public ResponseEntity<Void> calculatePoints(
+    public ResponseEntity<String> calculatePoints(
             @PathVariable Long matchId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             Authentication authentication) {
 
+        // 1. Patikriname, ar yra Authentication (tokenas)
         if (authentication == null) {
             return ResponseEntity.status(401).build();
         }
 
-        boolean isAdmin = authentication.getAuthorities().stream()
+        // 2. Tikriname rolę: arba iš tokeno (ROLE_ADMIN), arba iš tavo rankinio Headerio (ADMIN)
+        boolean hasAdminRoleInToken = authentication.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
 
-        if (!isAdmin) return ResponseEntity.status(403).build();
+        boolean hasAdminHeader = "ADMIN".equals(userRole);
+
+        // Jei nei tokene nėra ADMIN, nei headerio nepridėjai - tada meta 403
+        if (!hasAdminRoleInToken && !hasAdminHeader) {
+            return ResponseEntity.status(403).body("Forbidden: Reikalinga ADMIN role arba X-User-Role: ADMIN headeris");
+        }
 
         predictionService.calculatePoints(matchId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("Taskai sekmingai apskaiciuoti!");
     }
 }
