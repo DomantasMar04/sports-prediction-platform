@@ -37,12 +37,20 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+
         String email = authentication.getName();
         UserResponse response = authService.getCurrentUser(email);
         return ResponseEntity.ok(response);
     }
     @GetMapping("/profile")
     public ResponseEntity<ProfileResponse> profile(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+
         String email = authentication.getName();
         ProfileResponse response = authService.getProfile(email);
         return ResponseEntity.ok(response);

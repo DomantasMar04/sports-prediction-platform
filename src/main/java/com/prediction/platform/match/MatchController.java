@@ -1,5 +1,8 @@
 package com.prediction.platform.match;
 
+import com.prediction.platform.config.SportsDBService;
+import com.prediction.platform.dto.SyncResponse;
+import org.springframework.security.core.Authentication;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +14,7 @@ import java.util.List;
 public class MatchController {
 
     private final MatchService matchService;
+    private final SportsDBService sportsDbService;
 
     @GetMapping
     public ResponseEntity<List<Match>> getMatches(
@@ -57,5 +61,34 @@ public class MatchController {
                 request.getAwayScore(),
                 request.getMvpPlayer(),
                 request.getFirstScorer()));
+    }
+
+    @PostMapping("/sync-upcoming")
+    public ResponseEntity<SyncResponse> syncUpcomingMatches(
+            @RequestParam String leagueId,
+            Authentication authentication) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        int savedCount = sportsDbService.syncUpcomingMatches(leagueId);
+
+        return ResponseEntity.ok(
+                new SyncResponse("Matches synced successfully", savedCount)
+        );
+    }
+
+    @PostMapping("/refresh-results")
+    public ResponseEntity<SyncResponse> refreshMatchResults(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        int updatedCount = sportsDbService.refreshSavedMatchesResults();
+
+        return ResponseEntity.ok(
+                new SyncResponse("Match results refreshed successfully", updatedCount)
+        );
     }
 }

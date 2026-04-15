@@ -31,6 +31,8 @@ export const matchService = {
     getById: (id) => api.get(`/matches/${id}`),
     create: (match) => api.post('/matches', match),
     updateScore: (id, data) => api.patch(`/matches/${id}/score`, data),
+    syncUpcoming: (leagueId) => api.post(`/matches/sync-upcoming?leagueId=${leagueId}`),
+    refreshResults: () => api.post('/matches/refresh-results'),
 };
 
 export const predictionService = {

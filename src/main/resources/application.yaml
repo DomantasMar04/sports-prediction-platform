@@ -18,6 +18,6 @@ jwt:
   secret: mySuperSecretJwtKeyThatShouldBeVeryLongAndStoredSafely123456789
   expiration: 86400000
 
-api-sports:
-  key: 33676b43431952760164e1d28e8dad21
-  base-url: https://v1.basketball.api-sports.io
+sportsdb:
+  api-key: 123
+  base-url: https://www.thesportsdb.com/api/v1/json

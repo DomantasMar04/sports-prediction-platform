@@ -100,6 +100,8 @@ function MatchCard({ match }) {
                         <Button variant="outline-primary" size="sm" href={`/matches/${match.id}`}>Spėti</Button>
                     ) : match.status === 'UPCOMING' && isLocked ? (
                         <Button variant="outline-secondary" size="sm" disabled>Spėjimas uždarytas</Button>
+                    ) : match.status === 'LIVE' ? (
+                        <Button variant="outline-danger" size="sm" href={`/matches/${match.id}`}>Vyksta</Button>
                     ) : match.status === 'FINISHED' ? (
                         <Button variant="outline-secondary" size="sm" href={`/matches/${match.id}`}>Peržiūrėti</Button>
                     ) : null}
@@ -109,10 +111,14 @@ function MatchCard({ match }) {
     );
 }
 
+const LKL_LEAGUE_ID = 4478;
+
 function MatchesPage() {
     const [matches, setMatches] = useState([]);
     const [status, setStatus] = useState('UPCOMING');
     const [loading, setLoading] = useState(true);
+    const [syncing, setSyncing] = useState(false);
+    const [refreshingResults, setRefreshingResults] = useState(false);
 
     useEffect(() => { loadMatches(); }, [status]);
 
@@ -120,31 +126,79 @@ function MatchesPage() {
         try {
             setLoading(true);
             const res = await matchService.getAll(null, status || null);
-            setMatches(res.data);
+            console.log('MATCHES RESPONSE:', res.data);
+            setMatches(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
-            console.error(err);
+            console.error('LOAD MATCHES ERROR:', err);
         } finally {
             setLoading(false);
         }
     };
 
+    const handleSyncMatches = async () => {
+        try {
+            setSyncing(true);
+            await matchService.syncUpcoming(LKL_LEAGUE_ID);
+            await loadMatches();
+        } catch (err) {
+            console.error('Sync error:', err);
+            console.error('Response data:', err.response?.data);
+            console.error('Status:', err.response?.status);
+
+            alert(`Nepavyko atnaujinti rungtynių. Status: ${err.response?.status ?? 'nera'}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleRefreshResults = async () => {
+        try {
+            setRefreshingResults(true);
+            await matchService.refreshResults();
+            await loadMatches();
+        } catch (err) {
+            console.error('Refresh results error:', err);
+            alert('Nepavyko atnaujinti rezultatų.');
+        } finally {
+            setRefreshingResults(false);
+        }
+    };
+
+    console.log('MATCHES STATE:', matches);
+    console.log('SELECTED STATUS:', status);
+
     return (
         <Container className="mt-4">
-            <h2 className="mb-4">Rungtynės</h2>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2 className="mb-0">Rungtynės</h2>
+
+                <div className="d-flex gap-2">
+                    <Button variant="outline-primary" onClick={handleSyncMatches} disabled={syncing}>
+                        {syncing ? 'Atnaujinama...' : 'Atnaujinti'}
+                    </Button>
+
+                    <Button variant="outline-secondary" onClick={handleRefreshResults} disabled={refreshingResults}>
+                        {refreshingResults ? 'Tikrinama...' : 'Atnaujinti rezultatus'}
+                    </Button>
+                </div>
+            </div>
             <Form.Select className="mb-4 w-25" value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="UPCOMING">Būsimos</option>
                 <option value="">Visos</option>
                 <option value="LIVE">Vykstančios</option>
                 <option value="FINISHED">Baigtos</option>
             </Form.Select>
-            {loading ? <p>Kraunama...</p> : (
+            {loading ? (
+                <p>Kraunama...</p>
+            ) : matches.length === 0 ? (
+                <p className="text-muted">Rungtynių nerasta.</p>
+            ) : (
                 <Row>
                     {matches.map((match) => (
                         <Col md={4} key={match.id} className="mb-3">
                             <MatchCard match={match} />
                         </Col>
                     ))}
-                    {matches.length === 0 && <p className="text-muted">Rungtynių nerasta.</p>}
                 </Row>
             )}
         </Container>
