@@ -25,9 +25,7 @@ public class SportsDBService {
     private final LeagueRepository leagueRepository;
     private final PredictionService predictionService;
 
-    /**
-     * Sinchronizuoja ateinančias rungtynes pagal lygos ID
-     */
+
     @Transactional
     public int syncUpcomingMatches(String leagueExternalId) {
         Map<String, Object> response = sportsDbClient.getNextLeagueEvents(leagueExternalId);
@@ -75,9 +73,6 @@ public class SportsDBService {
         return savedCount;
     }
 
-    /**
-     * Atnaujina išsaugotų rungtynių rezultatus (Live ir baigtų)
-     */
     @Transactional
     public int refreshSavedMatchesResults() {
         // Tikriname tik tas, kurios dar nebaigtos
@@ -101,12 +96,11 @@ public class SportsDBService {
             String statusStr = value(event.get("strStatus"));
             Integer homeScore = parseInteger(event.get("intHomeScore"));
             Integer awayScore = parseInteger(event.get("intAwayScore"));
-            String quarterResults = value(event.get("strResult")); // Rezultatai iš API (pvz. "20 20...")
+            String quarterResults = value(event.get("strResult"));
 
             if (statusStr != null) {
                 String normalized = statusStr.toLowerCase();
 
-                // 1. Tikriname ar rungtynės baigtos
                 if (normalized.contains("finished") || normalized.contains("ft")) {
                     boolean wasNotFinished = match.getStatus() != Match.MatchStatus.FINISHED;
 
@@ -116,18 +110,17 @@ public class SportsDBService {
                     match.setQuarterResults(quarterResults);
                     matchRepository.save(match);
 
-                    // Jei statusas pasikeitė į FINISHED, iškart skaičiuojame taškus
                     if (wasNotFinished) {
                         try {
                             predictionService.calculatePoints(match.getId());
                         } catch (Exception e) {
-                            // Log klaida, bet tęsiame kitas rungtynes
+
                             System.err.println("Klaida skaičiuojant taškus: " + e.getMessage());
                         }
                     }
                     updatedCount++;
                 }
-                // 2. Tikriname ar rungtynės vyksta (LIVE)
+
                 else if (normalized.contains("live") || normalized.contains("play") || normalized.contains("quarter")) {
                     match.setStatus(Match.MatchStatus.LIVE);
                     match.setHomeScore(homeScore);

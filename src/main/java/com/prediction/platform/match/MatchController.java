@@ -45,10 +45,7 @@ public class MatchController {
         return ResponseEntity.ok(matchService.createMatch(match));
     }
 
-    /**
-     * Admino įrankis rankiniu būdu atnaujinti rezultatą.
-     * Naudojamas quarterResults vietoj mvpPlayer ir firstScorer.
-     */
+
     @PatchMapping("/{id}/score")
     public ResponseEntity<Match> updateScore(
             @PathVariable Long id,
@@ -59,12 +56,11 @@ public class MatchController {
             return ResponseEntity.status(403).build();
         }
 
-        // Kviečiame atnaujintą MatchService metodą
         return ResponseEntity.ok(matchService.updateMatchResult(
                 id,
                 request.getHomeScore(),
                 request.getAwayScore(),
-                request.getQuarterResults())); // Perduodame naują lauką
+                request.getQuarterResults()));
     }
 
     @PostMapping("/sync-upcoming")
@@ -72,12 +68,7 @@ public class MatchController {
             @RequestParam String leagueId,
             Authentication authentication) {
 
-        // LAIKINAI UŽKOMENTUOK ŠITĄ BLOKĄ:
-    /*
-    if (authentication == null) {
-        return ResponseEntity.status(401).build();
-    }
-    */
+
 
         int savedCount = sportsDbService.syncUpcomingMatches(leagueId);
 

@@ -17,18 +17,16 @@ public class PredictionSummaryResponse {
     private LocalDateTime startTime;
     private String matchStatus;
 
-    // Vartotojo spėjimai
     private String predictedWinner;
     private Integer predictedHomeScore;
     private Integer predictedAwayScore;
-    private Integer predictedMostQuartersWinner; // Naujas laukas (1, 2 arba 0)
+    private Integer predictedMostQuartersWinner;
 
-    // Tikri rezultatai iš API
     private Integer actualHomeScore;
     private Integer actualAwayScore;
-    private String quarterResults; // Naujas laukas kėliniams
+    private String quarterResults;
 
-    // Rezultatų informacija
+
     private Integer pointsEarned;
     private Boolean isCalculated;
     private String breakdown;

@@ -47,12 +47,11 @@ public class MatchService {
 
         Match savedMatch = matchRepository.save(match);
 
-        // 2. AUTOMATIZACIJA: Vos tik rungtynės baigiasi, iškart paskaičiuojame taškus visiems
         try {
             predictionService.calculatePoints(id);
             System.out.println("Taškai sėkmingai paskaičiuoti rungtynėms: " + id);
         } catch (Exception e) {
-            // Loguojame klaidą, bet leidžiame rungtynėms išsisaugoti
+
             System.err.println("Nepavyko automatiškai paskaičiuoti taškų: " + e.getMessage());
         }
 

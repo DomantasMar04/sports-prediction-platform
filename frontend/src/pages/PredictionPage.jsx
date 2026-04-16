@@ -5,7 +5,7 @@ import { matchService, predictionService } from '../services/api';
 
 const DEFAULT_USER_ID = 1;
 
-// --- PAGALBINIAI KOMPONENTAI ---
+
 
 function useCountdown(startTime) {
     const getRemaining = useCallback(() => {
@@ -48,7 +48,7 @@ function TeamHeader({ logoUrl, name }) {
     );
 }
 
-// --- TAŠKŲ DETALIZACIJA (PATAISYTA) ---
+
 function BreakdownCard({ breakdown }) {
     if (!breakdown) return null;
     let data;
@@ -56,7 +56,6 @@ function BreakdownCard({ breakdown }) {
         data = typeof breakdown === 'string' ? JSON.parse(breakdown) : breakdown;
     } catch { return null; }
 
-    // Žodynas atitinkantis tavo Backend JSON raktus
     const labels = {
         winner: "Atspėtas nugalėtojas",
         home: "Namų komandos taškai",
@@ -66,7 +65,7 @@ function BreakdownCard({ breakdown }) {
         difference: "Taškų skirtumas"
     };
 
-    // Sukuriame sąrašą iš visų galimų kategorijų (rodome net jei 0)
+
     const rows = Object.entries(data).map(([key, value]) => ({
         label: labels[key] || key,
         points: value || 0
@@ -101,7 +100,6 @@ function BreakdownCard({ breakdown }) {
     );
 }
 
-// --- PAGRINDINIS PUSLAPIS ---
 
 function PredictionPage() {
     const { matchId } = useParams();
@@ -137,8 +135,27 @@ function PredictionPage() {
     const awayTotal = calcTotal(awayQuarters);
 
     const updateQuarter = (team, index, value) => {
-        if (team === 'home') { const u = [...homeQuarters]; u[index] = value; setHomeQuarters(u); }
-        else { const u = [...awayQuarters]; u[index] = value; setAwayQuarters(u); }
+
+        if (value === '') {
+            if (team === 'home') { const u = [...homeQuarters]; u[index] = ''; setHomeQuarters(u); }
+            else { const u = [...awayQuarters]; u[index] = ''; setAwayQuarters(u); }
+            return;
+        }
+
+        const num = parseInt(value);
+
+        if (num < 0) return;
+        if (num > 100) return;
+
+        if (team === 'home') {
+            const u = [...homeQuarters];
+            u[index] = num.toString();
+            setHomeQuarters(u);
+        } else {
+            const u = [...awayQuarters];
+            u[index] = num.toString();
+            setAwayQuarters(u);
+        }
     };
 
     const formatDateTime = (dt) => {
@@ -153,7 +170,25 @@ function PredictionPage() {
         e.preventDefault();
         if (isLocked) { setError('Spėjimo laikas baigėsi.'); return; }
 
-        // Paskaičiuojame kėlinių laimėtoją (logika tavo DB)
+        const allQuartersFilled = [...homeQuarters, ...awayQuarters].every(q => q !== '');
+        if (!allQuartersFilled) {
+            setError('Prašome užpildyti visų kėlinių spėjimus.');
+            return;
+        }
+
+        if (homeTotal > awayTotal && predictedWinner === awayName) {
+            setError(`Pagal kėlinių taškus laimi ${homeName}, bet pasirinkote ${awayName}. Rezultatas turi sutapti su nugalėtoju.`);
+            return;
+        }
+        if (awayTotal > homeTotal && predictedWinner === homeName) {
+            setError(`Pagal kėlinių taškus laimi ${awayName}, bet pasirinkote ${homeName}. Rezultatas turi sutapti su nugalėtoju.`);
+            return;
+        }
+        if (homeTotal === awayTotal) {
+            setError('Krepšinyje lygiosios negalimos. Pakoreguokite kėlinių taškus.');
+            return;
+        }
+
         let hWins = 0, aWins = 0;
         for(let i=0; i<4; i++) {
             const h = parseInt(homeQuarters[i]) || 0;
@@ -171,6 +206,7 @@ function PredictionPage() {
                 match: { id: parseInt(matchId) },
                 user: { id: DEFAULT_USER_ID },
             };
+
             if (existingPrediction && isEditing) {
                 const res = await predictionService.update(matchId, existingPrediction.id, data, DEFAULT_USER_ID);
                 setExistingPrediction(res.data);
@@ -183,16 +219,14 @@ function PredictionPage() {
             setError('Klaida: ' + (err.response?.data?.message || err.message));
         }
     };
-    // Pridėk šią funkciją prie kitų (pvz., po handleSubmit)
+
     const handleCalculate = async () => {
         if (!window.confirm("Ar tikrai norite perskaičiuoti visų vartotojų taškus šioms rungtynėms?")) return;
 
         try {
-            // matchId gauname iš useParams()
             await matchService.calculateMatchPoints(matchId);
             alert("Skaičiavimas sėkmingai paleistas! ✅");
 
-            // Perkrauname spėjimo duomenis, kad pamatytume pasikeitimus
             const res = await predictionService.getMyPrediction(matchId, DEFAULT_USER_ID);
             if (res.data) setExistingPrediction(res.data);
         } catch (err) {

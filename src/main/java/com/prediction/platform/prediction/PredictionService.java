@@ -30,7 +30,6 @@ public class PredictionService {
             throw new RuntimeException("Cannot predict - match already started");
         }
 
-        // Patikrink ar jau yra spėjimas
         predictionRepository.findByUserIdAndMatchId(
                         prediction.getUser().getId(), prediction.getMatch().getId())
                 .ifPresent(p -> { throw new RuntimeException("Prediction already exists"); });
@@ -53,7 +52,6 @@ public class PredictionService {
             throw new RuntimeException("Cannot update - match already started");
         }
 
-        // Tikrink 10 min deadline
         if (match.getStartTime() != null &&
                 LocalDateTime.now().isAfter(match.getStartTime().minusMinutes(10))) {
             throw new RuntimeException("Cannot update - deadline passed");
@@ -136,7 +134,6 @@ public class PredictionService {
                     return l;
                 });
 
-        // Jei naujas — reikia nustatyti league
         if (entry.getId() == null) {
             com.prediction.platform.league.League league =
                     new com.prediction.platform.league.League();

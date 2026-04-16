@@ -38,7 +38,6 @@ public class Prediction {
     @Column(name = "is_calculated")
     private Boolean isCalculated = false;
 
-    // JSON breakdown: {"winner":20,"homeScore":30,...}
     @Column(name = "breakdown", length = 500)
     private String breakdown;
 

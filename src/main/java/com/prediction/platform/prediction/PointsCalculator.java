@@ -14,18 +14,15 @@ public class PointsCalculator {
         int points = 0;
         PointsBreakdown breakdown = new PointsBreakdown();
 
-        // 1. Galutinis nugalėtojas (20 tšk)
         String actualWinner = getWinnerName(match);
         if (actualWinner != null && actualWinner.equals(prediction.getPredictedWinner())) {
             points += 20;
             breakdown.setWinnerPoints(20);
         }
 
-        // 2. Individualūs komandų taškai (Intervalai jau yra tavo kode - paliekam/patobulinam)
         points += calculateScorePoints(prediction.getPredictedHomeScore(), match.getHomeScore(), "home", breakdown);
         points += calculateScorePoints(prediction.getPredictedAwayScore(), match.getAwayScore(), "away", breakdown);
 
-        // 3. Bendra taškų suma (Nauja: Intervalai)
         int totalPred = prediction.getPredictedHomeScore() + prediction.getPredictedAwayScore();
         int totalActual = match.getHomeScore() + match.getAwayScore();
         int totalDiff = Math.abs(totalPred - totalActual);
@@ -33,7 +30,6 @@ public class PointsCalculator {
         points += totalPoints;
         breakdown.setTotalPoints(totalPoints);
 
-        // 4. Taškų skirtumas (Nauja: Intervalai)
         int predDiff = prediction.getPredictedHomeScore() - prediction.getPredictedAwayScore();
         int actualDiff = match.getHomeScore() - match.getAwayScore();
         int diffError = Math.abs(predDiff - actualDiff);
@@ -41,13 +37,12 @@ public class PointsCalculator {
         points += diffPoints;
         breakdown.setDiffPoints(diffPoints);
 
-        // 5. Ketvirčių nugalėtojas (Patobulinta: Intervalas už "beveik" atspėtą santykį)
         if (prediction.getPredictedMostQuartersWinner() != null && match.getQuarterResults() != null) {
             int actualQWinner = parseMostQuartersWinner(match.getQuarterResults());
             if (prediction.getPredictedMostQuartersWinner() == actualQWinner) {
                 points += 20;
                 breakdown.setQuartersPoints(20);
-            } else if (actualQWinner == 0) { // Jei realybėje lygios, o tu spėjai kažką laimint - duodam 10
+            } else if (actualQWinner == 0) {
                 points += 10;
                 breakdown.setQuartersPoints(10);
             }
@@ -57,7 +52,6 @@ public class PointsCalculator {
         return points;
     }
 
-    // Tavo originalus metodas su Regex (veikia puikiai)
     private int parseMostQuartersWinner(String raw) {
         List<Integer> nums = new ArrayList<>();
         Matcher m = Pattern.compile("\\d+").matcher(raw);
@@ -87,7 +81,6 @@ public class PointsCalculator {
         return "DRAW";
     }
 
-    // Papildyta Breakdown klasė, kad JSON matytųsi visi nauji laukai
     public static class PointsBreakdown {
         private int winner, home, away, quarters, total, diff;
         public void setWinnerPoints(int v) { this.winner = v; }
