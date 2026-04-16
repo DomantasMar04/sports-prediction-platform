@@ -183,6 +183,22 @@ function PredictionPage() {
             setError('Klaida: ' + (err.response?.data?.message || err.message));
         }
     };
+    // Pridėk šią funkciją prie kitų (pvz., po handleSubmit)
+    const handleCalculate = async () => {
+        if (!window.confirm("Ar tikrai norite perskaičiuoti visų vartotojų taškus šioms rungtynėms?")) return;
+
+        try {
+            // matchId gauname iš useParams()
+            await matchService.calculateMatchPoints(matchId);
+            alert("Skaičiavimas sėkmingai paleistas! ✅");
+
+            // Perkrauname spėjimo duomenis, kad pamatytume pasikeitimus
+            const res = await predictionService.getMyPrediction(matchId, DEFAULT_USER_ID);
+            if (res.data) setExistingPrediction(res.data);
+        } catch (err) {
+            alert("Klaida skaičiuojant: " + (err.response?.data?.message || err.message));
+        }
+    };
 
     const handleDelete = async () => {
         if (!existingPrediction) return;
@@ -250,7 +266,6 @@ function PredictionPage() {
                             <Alert variant="info" className="text-center py-2 mb-0">Taškai skaičiuojami...</Alert>
                         ) : null}
 
-                        {/* ČIA RODOMAS BREAKDOWN */}
                         {existingPrediction.isCalculated && (
                             <BreakdownCard breakdown={existingPrediction.breakdown} />
                         )}

@@ -1,5 +1,6 @@
 package com.prediction.platform.match;
 
+import com.prediction.platform.prediction.PredictionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.List;
 public class MatchService {
 
     private final MatchRepository matchRepository;
+    private final PredictionService predictionService;
 
     public List<Match> getAllMatches() {
         return matchRepository.findAll();
@@ -35,15 +37,25 @@ public class MatchService {
         return matchRepository.save(match);
     }
 
-    // ATNAUJINTAS METODAS: Pašalintas MVP/FirstScorer, pridėtas quarterResults
     public Match updateMatchResult(Long id, Integer homeScore, Integer awayScore, String quarterResults) {
         Match match = getMatchById(id);
 
         match.setHomeScore(homeScore);
         match.setAwayScore(awayScore);
-        match.setQuarterResults(quarterResults); // Išsaugome ketvirčių duomenis
+        match.setQuarterResults(quarterResults);
         match.setStatus(Match.MatchStatus.FINISHED);
 
-        return matchRepository.save(match);
+        Match savedMatch = matchRepository.save(match);
+
+        // 2. AUTOMATIZACIJA: Vos tik rungtynės baigiasi, iškart paskaičiuojame taškus visiems
+        try {
+            predictionService.calculatePoints(id);
+            System.out.println("Taškai sėkmingai paskaičiuoti rungtynėms: " + id);
+        } catch (Exception e) {
+            // Loguojame klaidą, bet leidžiame rungtynėms išsisaugoti
+            System.err.println("Nepavyko automatiškai paskaičiuoti taškų: " + e.getMessage());
+        }
+
+        return savedMatch;
     }
 }
